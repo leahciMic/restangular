@@ -609,6 +609,26 @@ describe("Restangular", function() {
     });
   });
 
+  it("should have the correct url when using addRestangularMethod", function() {
+    var Accounts = Restangular.withConfig(function(RestangularConfigurer) {
+      RestangularConfigurer.addElementTransformer('accounts', true, function(worker) {
+        worker.addRestangularMethod('doSomething', 'get', 'do-something');
+        return worker;
+      });
+    }).service('accounts');
+
+    expect(Accounts.doSomething).toBeDefined();
+    expect(_.isFunction(Accounts.doSomething)).toBeTruthy();
+
+    Accounts.doSomething().then(function(doSomething) {
+      doSomething.one('foo').get();
+    });
+
+    $httpBackend.expectGET('/accounts/do-something');
+    $httpBackend.expectGET('/accounts/do-something/foo');
+    $httpBackend.flush();
+  });
+
   describe("ONE", function() {
     it("get() should return a JSON item", function() {
       restangularAccount1.get().then(function(account) {
