@@ -1242,24 +1242,23 @@ module.provider('Restangular', function() {
       }
 
       function addRestangularMethodFunction(name, operation, path, defaultParams, defaultHeaders, defaultElem) {
-        var bindedFunction;
+        var newRestangularObject,
+            createdFunction;
+
         if (operation === 'getList') {
-          bindedFunction = _.bind(fetchFunction, this, path);
+          newRestangularObject = this.all(path);
         } else {
-          bindedFunction = _.bind(customFunction, this, operation, path);
+          newRestangularObject = this.one(path);
         }
 
-        var createdFunction = function(params, headers, elem) {
-          var callParams = _.defaults({
-            params: params,
-            headers: headers,
-            elem: elem
-          }, {
-            params: defaultParams,
-            headers: defaultHeaders,
-            elem: defaultElem
-          });
-          return bindedFunction(callParams.params, callParams.headers, callParams.elem);
+        createdFunction = function(params, headers, elem) {
+          var params, headers, elem;
+
+          params = _.defaults(params, defaultParams);
+          headers = _.defaults(headers, defaultHeaders);
+          elem = _.defaults(elem, defaultElem);
+
+          return newRestangularObject[operation](params, headers, elem);
         };
 
         if (config.isSafe(operation)) {

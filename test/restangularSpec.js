@@ -1,7 +1,7 @@
 describe("Restangular", function() {
   // API
   var Restangular, $httpBackend;
-  var accountsModel, restangularAccounts, restangularAccount0, restangularAccount1;
+  var accountsModel, restangularAccounts, restangularAccount0, restangularAccount1, fooModel;
   var accountsHalModel;
   var messages, newAccount;
 
@@ -27,7 +27,11 @@ describe("Restangular", function() {
 
     infoModel = {
       id: 0, text: "Some additional account information"
-    }
+    };
+
+    fooModel = {
+      foo: 'bar'
+    };
 
     newAccount = {id: 44, user: "First User", amount: 45, transactions: []};
 
@@ -43,6 +47,7 @@ describe("Restangular", function() {
 
     $httpBackend.whenGET("/accounts").respond(accountsModel);
     $httpBackend.whenGET("/accounts/do-something").respond(accountsDoSomethingModel);
+    $httpBackend.whenGET("/accounts/do-something/foo").respond(fooModel);
     $httpBackend.whenJSONP("/accounts").respond(accountsModel);
     $httpBackend.whenGET("/accounts/0,1").respond(accountsModel);
     $httpBackend.whenGET("/accounts/messages").respond(messages);
