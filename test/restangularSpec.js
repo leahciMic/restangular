@@ -1,7 +1,7 @@
 describe("Restangular", function() {
   // API
   var Restangular, $httpBackend;
-  var accountsModel, restangularAccounts, restangularAccount0, restangularAccount1;
+  var accountsModel, restangularAccounts, restangularAccount0, restangularAccount1, fooModel;
   var accountsHalModel;
   var messages, newAccount;
 
@@ -27,7 +27,11 @@ describe("Restangular", function() {
 
     infoModel = {
       id: 0, text: "Some additional account information"
-    }
+    };
+
+    fooModel = {
+      foo: 'bar'
+    };
 
     newAccount = {id: 44, user: "First User", amount: 45, transactions: []};
 
@@ -43,6 +47,14 @@ describe("Restangular", function() {
 
     $httpBackend.whenGET("/accounts").respond(accountsModel);
     $httpBackend.whenGET("/accounts/do-something").respond(accountsDoSomethingModel);
+    $httpBackend.whenGET("/accounts/do-something/foo").respond(fooModel);
+    $httpBackend.whenPOST("/accounts/post-something").respond(fooModel);
+    $httpBackend.whenGET("/accounts/post-something/foo").respond(fooModel);
+    $httpBackend.whenPUT("/accounts/put-something").respond(fooModel);
+    $httpBackend.whenGET("/accounts/put-something/foo").respond(fooModel);
+    $httpBackend.whenPUT("/accounts/put-something/foo").respond(fooModel);
+    $httpBackend.whenDELETE("/accounts/delete-something").respond(fooModel);
+    $httpBackend.whenGET("/accounts/delete-something/foo").respond(fooModel);
     $httpBackend.whenJSONP("/accounts").respond(accountsModel);
     $httpBackend.whenGET("/accounts/0,1").respond(accountsModel);
     $httpBackend.whenGET("/accounts/messages").respond(messages);
@@ -560,7 +572,6 @@ describe("Restangular", function() {
   });
 
   describe("Scoped Service", function() {
-
     it("should correctly work", function() {
       var Accounts = Restangular.service('accounts');
       Accounts.post(newAccount);
@@ -585,29 +596,83 @@ describe("Restangular", function() {
       $httpBackend.flush();
      });
 
-    it("should add custom collection method added with withConfig", function() {
-      var Accounts = Restangular.withConfig(function(RestangularConfigurer) {
-        RestangularConfigurer.addElementTransformer('accounts', true, function(worker) {
-          worker.addRestangularMethod('doSomething', 'get', 'do-something');
-          return worker;
+    describe("addRestangularMethod", function() {
+      var Accounts;
+      beforeEach(function() {
+        Accounts = Restangular.withConfig(function(RestangularConfigurer) {
+          RestangularConfigurer.addElementTransformer('accounts', true, function(worker) {
+            worker.addRestangularMethod('doSomething', 'get', 'do-something');
+            worker.addRestangularMethod('postSomething', 'post', 'post-something');
+            worker.addRestangularMethod('getListSomething', 'getList', 'getList-something');
+            worker.addRestangularMethod('putSomething', 'put', 'put-something');
+            worker.addRestangularMethod('deleteSomething', 'delete', 'delete-something');
+            return worker;
+          });
+        }).service('accounts');
+      });
+
+      it("should add custom collection method added with withConfig", function() {
+        expect(Accounts.doSomething).toBeDefined();
+        expect(_.isFunction(Accounts.doSomething)).toBeTruthy();
+
+        Accounts.post(newAccount);
+        Accounts.one(0).get();
+        Accounts.getList();
+        Accounts.doSomething();
+
+        $httpBackend.expectPOST('/accounts');
+        $httpBackend.expectGET('/accounts/0');
+        $httpBackend.expectGET('/accounts');
+        $httpBackend.expectGET('/accounts/do-something');
+        $httpBackend.flush();
+      });
+
+      it("should have the correct url when using addRestangularMethod", function() {
+        expect(Accounts.doSomething).toBeDefined();
+        expect(_.isFunction(Accounts.doSomething)).toBeTruthy();
+
+        Accounts.doSomething().then(function(doSomething) {
+          doSomething.one('foo').get();
         });
-      }).service('accounts');
 
-      expect(Accounts.doSomething).toBeDefined();
-      expect(_.isFunction(Accounts.doSomething)).toBeTruthy();
+        $httpBackend.expectGET('/accounts/do-something');
+        $httpBackend.expectGET('/accounts/do-something/foo');
+        $httpBackend.flush();
+     });
 
-      Accounts.post(newAccount);
-      Accounts.one(0).get();
-      Accounts.getList();
-      Accounts.doSomething();
+     it("should support post", function() {
+       Accounts.postSomething({foo: 'bar'}).then(function(postSomething) {
+         postSomething.one('foo').get();
+       });
+       $httpBackend.expectPOST('/accounts/post-something', {foo: 'bar'});
+       $httpBackend.expectGET('/accounts/post-something/foo');
+       $httpBackend.flush();
+     });
 
-      $httpBackend.expectPOST('/accounts');
-      $httpBackend.expectGET('/accounts/0');
-      $httpBackend.expectGET('/accounts');
-      $httpBackend.expectGET('/accounts/do-something');
-      $httpBackend.flush();
-    });
-  });
+     it("should support put", function() {
+       Accounts.putSomething({foo: 'bar'}).then(function(putSomething) {
+         putSomething.one('foo').get();
+         var a = putSomething.one('foo');
+         a.foo = 'bar';
+         a.put();
+       });
+       $httpBackend.expectPUT('/accounts/put-something', {foo: 'bar'});
+       $httpBackend.expectGET('/accounts/put-something/foo');
+       $httpBackend.expectPUT('/accounts/put-something/foo', {foo: 'bar'});
+       $httpBackend.flush();
+     });
+
+     it("should support delete", function() {
+       Accounts.deleteSomething().then(function(deleteSomething) {
+         deleteSomething.one('foo').get();
+       });
+
+       $httpBackend.expectDELETE('/accounts/delete-something');
+       $httpBackend.expectGET('/accounts/delete-something/foo');
+       $httpBackend.flush();
+     });
+   });
+ });
 
   describe("ONE", function() {
     it("get() should return a JSON item", function() {
