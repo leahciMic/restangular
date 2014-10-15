@@ -1243,13 +1243,10 @@ module.provider('Restangular', function() {
 
       function addRestangularMethodFunction(name, operation, path, defaultParams, defaultHeaders, defaultElem) {
         var newRestangularObject,
-            createdFunction;
+            createdFunction,
+            urlBuilder = operation === 'getList' ? 'all' : 'one';
 
-        if (operation === 'getList') {
-          newRestangularObject = this.all(path);
-        } else {
-          newRestangularObject = this.one(path);
-        }
+        newRestangularObject = this[urlBuilder](path);
 
         createdFunction = function(params, headers, elem) {
           var params, headers, elem;
@@ -1258,7 +1255,15 @@ module.provider('Restangular', function() {
           headers = _.defaults(headers, defaultHeaders);
           elem = _.defaults(elem, defaultElem);
 
-          return newRestangularObject[operation](params, headers, elem);
+          return newRestangularObject.customOperation(
+            // umm, so the documentation specifies delete is one of the operations
+            // that can be pased to customOperation, but it totally means remove?
+            operation === 'delete' ? 'remove' : operation,
+            '',
+            params,
+            headers,
+            elem
+          );
         };
 
         if (config.isSafe(operation)) {
