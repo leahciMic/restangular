@@ -52,6 +52,7 @@ describe("Restangular", function() {
     $httpBackend.whenGET("/accounts/post-something/foo").respond(fooModel);
     $httpBackend.whenPUT("/accounts/put-something").respond(fooModel);
     $httpBackend.whenGET("/accounts/put-something/foo").respond(fooModel);
+    $httpBackend.whenPUT("/accounts/put-something/foo").respond(fooModel);
     $httpBackend.whenDELETE("/accounts/delete-something").respond(fooModel);
     $httpBackend.whenGET("/accounts/delete-something/foo").respond(fooModel);
     $httpBackend.whenJSONP("/accounts").respond(accountsModel);
@@ -571,7 +572,6 @@ describe("Restangular", function() {
   });
 
   describe("Scoped Service", function() {
-
     it("should correctly work", function() {
       var Accounts = Restangular.service('accounts');
       Accounts.post(newAccount);
@@ -640,37 +640,39 @@ describe("Restangular", function() {
         $httpBackend.flush();
      });
 
-      it("should support post", function() {
-        Accounts.postSomething({foo: 'bar'}).then(function(postSomething) {
-          postSomething.one('foo').get();
-        });
+     it("should support post", function() {
+       Accounts.postSomething({foo: 'bar'}).then(function(postSomething) {
+         postSomething.one('foo').get();
+       });
+       $httpBackend.expectPOST('/accounts/post-something', {foo: 'bar'});
+       $httpBackend.expectGET('/accounts/post-something/foo');
+       $httpBackend.flush();
+     });
 
-        $httpBackend.expectPOST('/accounts/post-something', {foo: 'bar'});
-        $httpBackend.expectGET('/accounts/post-something/foo');
-        $httpBackend.flush();
-      });
+     it("should support put", function() {
+       Accounts.putSomething({foo: 'bar'}).then(function(putSomething) {
+         putSomething.one('foo').get();
+         var a = putSomething.one('foo');
+         a.foo = 'bar';
+         a.put();
+       });
+       $httpBackend.expectPUT('/accounts/put-something', {foo: 'bar'});
+       $httpBackend.expectGET('/accounts/put-something/foo');
+       $httpBackend.expectPUT('/accounts/put-something/foo', {foo: 'bar'});
+       $httpBackend.flush();
+     });
 
-      it("should support put", function() {
-        Accounts.putSomething({foo: 'bar'}).then(function(putSomething) {
-          putSomething.one('foo').get();
-        });
+     it("should support delete", function() {
+       Accounts.deleteSomething().then(function(deleteSomething) {
+         deleteSomething.one('foo').get();
+       });
 
-        $httpBackend.expectPUT('/accounts/put-something', {foo: 'bar'});
-        $httpBackend.expectGET('/accounts/put-something/foo');
-        $httpBackend.flush();
-      });
-
-      it("should support delete", function() {
-        Accounts.deleteSomething().then(function(deleteSomething) {
-          deleteSomething.one('foo').get();
-        });
-
-        $httpBackend.expectDELETE('/accounts/delete-something');
-        $httpBackend.expectGET('/accounts/delete-something/foo');
-        $httpBackend.flush();
-      });
-    });
-  });
+       $httpBackend.expectDELETE('/accounts/delete-something');
+       $httpBackend.expectGET('/accounts/delete-something/foo');
+       $httpBackend.flush();
+     });
+   });
+ });
 
   describe("ONE", function() {
     it("get() should return a JSON item", function() {
